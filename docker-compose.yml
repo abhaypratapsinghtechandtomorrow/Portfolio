@@ -1,7 +1,7 @@
 
 services:
   frontend:
-    image: yourname/mern-portfolio-frontend:latest
+    image: /mern-portfolio-frontend:latest
     ports:
       - "80:80"
     depends_on:
@@ -9,7 +9,7 @@ services:
     restart: unless-stopped
 
   backend:
-    image: yourname/mern-portfolio-backend:latest
+    image: /mern-portfolio-backend:latest
     ports:
       - "3000:3000"
     env_file:
