@@ -1,19 +1,19 @@
 
 services:
-  frontend:
+  Client:
     image: abhaypratapsingh7704866570/mern-portfolio-frontend:latest
     ports:
       - "80:80"
     depends_on:
-      - backend
+      - Server
     restart: unless-stopped
 
-  backend:
+  Server:
     image: abhaypratapsingh7704866570/mern-portfolio-backend:latest
     ports:
-      - "3000:3000"
+      - "5000:5000"
     env_file:
-      - ./backend/.env
+      - ./Server/.env
     depends_on:
       - mongo
     restart: unless-stopped

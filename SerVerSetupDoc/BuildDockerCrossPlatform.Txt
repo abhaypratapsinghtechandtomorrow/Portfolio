@@ -1,0 +1,17 @@
+Use buildx
+
+
+docker buildx build \
+  --platform linux/amd64,linux/arm64 \
+  -t abhaypratapsingh7704866570/mern-portfolio-frontend:latest \
+  --push \
+  ./Client
+
+
+
+
+  docker buildx build \
+  --platform linux/amd64,linux/arm64 \
+  -t abhaypratapsingh7704866570/mern-portfolio-backend:latest \
+  --push \
+  ./Server

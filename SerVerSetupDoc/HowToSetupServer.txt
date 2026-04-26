@@ -1,0 +1,168 @@
+Perfect. Here's both setups step by step.
+
+---
+
+## Part 1 — Nginx inside Docker (frontend container)
+
+This is the `nginx.conf` that runs **inside your Client container**. It serves your React build and forwards `/api` requests to your backend.
+
+```bash
+cat > Client/nginx.conf << 'EOF'
+server {
+    listen 80;
+    server_name _;
+
+    root /usr/share/nginx/html;
+    index index.html;
+
+    # React router support - all routes go to index.html
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # Forward all /api requests to backend container
+    location /api {
+        proxy_pass http://server:5000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
+EOF
+```
+
+Then make sure your `Client/Dockerfile` copies this file:
+
+```bash
+cat > Client/Dockerfile << 'EOF'
+# Stage 1 - build React app
+FROM node:20-alpine AS builder
+WORKDIR /app
+COPY package*.json ./
+RUN npm install
+COPY . .
+RUN npm run build
+
+# Stage 2 - serve with nginx
+FROM nginx:alpine
+COPY --from=builder /app/dist /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]
+EOF
+```
+
+---
+
+## Part 2 — Nginx on Oracle Cloud server directly
+
+This handles your domain `techandtomorrow.social`, HTTPS via Cloudflare, and routes traffic to your Docker containers.
+
+**Step 1 — Install Nginx on server:**
+
+```bash
+sudo apt update && sudo apt install nginx -y
+```
+
+**Step 2 — Create your site config:**
+
+```bash
+sudo nano /etc/nginx/sites-available/mern-portfolio
+```
+
+Paste this:
+
+```nginx
+server {
+    listen 80;
+    server_name techandtomorrow.social www.techandtomorrow.social;
+
+    # Frontend - React app (Docker container on port 80)
+    location / {
+        proxy_pass http://localhost:80;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_cache_bypass $http_upgrade;
+    }
+
+    # Backend API (Docker container on port 5000)
+    location /api {
+        proxy_pass http://localhost:5000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
+```
+
+**Step 3 — Enable the site:**
+
+```bash
+sudo ln -s /etc/nginx/sites-available/mern-portfolio /etc/nginx/sites-enabled/
+```
+
+**Step 4 — Remove default nginx site:**
+
+```bash
+sudo rm /etc/nginx/sites-enabled/default
+```
+
+**Step 5 — Test config is valid:**
+
+```bash
+sudo nginx -t
+```
+
+You should see:
+```
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+```
+
+**Step 6 — Restart Nginx:**
+
+```bash
+sudo systemctl restart nginx
+sudo systemctl enable nginx
+```
+
+---
+
+## How traffic flows end to end:
+
+```
+User Browser
+     ↓
+Cloudflare (SSL/HTTPS)
+     ↓
+Oracle Cloud Server (port 80)
+     ↓
+Nginx on server
+     ↓
+├── / → Docker client container (port 80) → React app
+└── /api → Docker server container (port 5000) → Express
+                                                      ↓
+                                                   MongoDB
+```
+
+---
+
+## One important Cloudflare setting
+
+Since Cloudflare handles HTTPS for you, make sure in your Cloudflare dashboard:
+
+- SSL/TLS mode is set to **Flexible** or **Full**
+- Port 80 is open on your Oracle Cloud security list
+
+That's your complete Nginx setup. Ready to start building the actual React pages now?
