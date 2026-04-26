@@ -1,0 +1,25 @@
+{
+  "name": "portfolio",
+  "version": "1.0.0",
+  "description": "",
+  "homepage": "https://github.com/abhaypratapsinghtechandtomorrow/Portfolio#readme",
+  "bugs": {
+    "url": "https://github.com/abhaypratapsinghtechandtomorrow/Portfolio/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/abhaypratapsinghtechandtomorrow/Portfolio.git"
+  },
+  "license": "ISC",
+  "author": "",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "server": "cd Server && npm start",
+    "client": "cd Client && npm run dev",
+    "start": "concurrently \"npm run server\" \"npm run client\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}
